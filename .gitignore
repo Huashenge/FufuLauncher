@@ -416,3 +416,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# EasyEDA MCP local database
+FufuLauncher/.easyeda-mcp-pro/
