@@ -1358,4 +1358,6 @@ Stack trace:
 Details: {0}</value></data>
   <data name="IniFile_WriteError" xml:space="preserve"><value>An error occurred while writing configuration.
 Details: {0}</value></data>
+  <data name="FontScaleTitle" xml:space="preserve"><value>Font Size</value></data>
+  <data name="FontScaleCaption" xml:space="preserve"><value>Adjust the application font display scale (50% - 150%)</value></data>
 </root>

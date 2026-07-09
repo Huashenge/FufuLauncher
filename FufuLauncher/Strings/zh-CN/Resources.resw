@@ -1406,4 +1406,6 @@
 反馈: {0}</value></data>
   <data name="IniFile_WriteError" xml:space="preserve"><value>写入配置时发生错误
 反馈: {0}</value></data>
+  <data name="FontScaleTitle" xml:space="preserve"><value>字体大小</value></data>
+  <data name="FontScaleCaption" xml:space="preserve"><value>调整应用程序的字体显示比例（50% - 150%）</value></data>
 </root>

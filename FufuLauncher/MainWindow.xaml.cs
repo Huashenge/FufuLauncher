@@ -50,6 +50,8 @@ public sealed partial class MainWindow : WindowEx
     private bool _isPageOverlaySemiTransparent;
     private double _pageOverlayTargetOpacity = 1.0;
     private bool _isHamburgerButtonEnabled;
+    private double _currentFontScale = 1.0;
+    private readonly Dictionary<DependencyObject, double> _originalFontSizes = new();
 
     private bool _isVideoBackground;
     
@@ -279,7 +281,16 @@ public sealed partial class MainWindow : WindowEx
             dispatcherQueue.TryEnqueue(() => ApplyBackgroundImageOpacity(m.Value));
         });
 
+        WeakReferenceMessenger.Default.Register<FontScaleChangedMessage>(this, (_, m) =>
+        {
+            dispatcherQueue.TryEnqueue(() => ApplyFontScale(m.Value));
+        });
+
         dispatcherQueue.TryEnqueue(async void () => await LoadBackgroundImageOpacityAsync());
+        dispatcherQueue.TryEnqueue(async void () => await LoadFontScaleAsync());
+
+        ContentFrame.Navigated += OnContentFrameNavigated;
+
         Activated += OnWindowActivated;
 
         if (!Helpers.AppPaths.IsFirstRun)
@@ -733,6 +744,93 @@ public sealed partial class MainWindow : WindowEx
         var clamped = Math.Clamp(value, 0.0, 1.0);
         if (GlobalBackgroundImage != null) GlobalBackgroundImage.Opacity = clamped;
         if (GlobalBackgroundVideo != null) GlobalBackgroundVideo.Opacity = clamped;
+    }
+
+    private async Task LoadFontScaleAsync()
+    {
+        try
+        {
+            var valueObj = await _localSettingsService.ReadSettingAsync("FontScale");
+            var scale = 1.0;
+            if (valueObj != null && double.TryParse(valueObj.ToString(), out var parsed)) scale = parsed;
+            _currentFontScale = Math.Clamp(scale, 0.5, 1.5);
+
+            if (RootGrid.IsLoaded)
+                ApplyFontScaleToTree(RootGrid);
+            else
+                RootGrid.Loaded += OnRootGridLoadedForFontScale;
+        }
+        catch { _currentFontScale = 1.0; }
+    }
+
+    private void OnRootGridLoadedForFontScale(object sender, RoutedEventArgs e)
+    {
+        RootGrid.Loaded -= OnRootGridLoadedForFontScale;
+        ApplyFontScaleToTree(RootGrid);
+    }
+
+    private void ApplyFontScale(double value)
+    {
+        var clamped = Math.Clamp(value, 0.5, 1.5);
+        if (Math.Abs(_currentFontScale - clamped) < 0.001) return;
+        _currentFontScale = clamped;
+
+        if (RootGrid.IsLoaded)
+            ApplyFontScaleToTree(RootGrid);
+    }
+
+    private void ApplyFontScaleToTree(DependencyObject parent)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+
+            // Handle Control (and its subclasses like Button, TextBox, etc.)
+            if (child is Control control)
+            {
+                if (!_originalFontSizes.ContainsKey(control))
+                {
+                    var localValue = control.ReadLocalValue(Control.FontSizeProperty);
+                    if (localValue != DependencyProperty.UnsetValue && localValue is double localSize)
+                        _originalFontSizes[control] = localSize;
+                }
+                if (_originalFontSizes.TryGetValue(control, out double original))
+                    control.FontSize = original * _currentFontScale;
+            }
+            // Handle TextBlock (not a Control, but has its own FontSize)
+            else if (child is TextBlock textBlock)
+            {
+                if (!_originalFontSizes.ContainsKey(textBlock))
+                {
+                    var localValue = textBlock.ReadLocalValue(TextBlock.FontSizeProperty);
+                    if (localValue != DependencyProperty.UnsetValue && localValue is double localSize)
+                        _originalFontSizes[textBlock] = localSize;
+                }
+                if (_originalFontSizes.TryGetValue(textBlock, out double original))
+                    textBlock.FontSize = original * _currentFontScale;
+            }
+
+            ApplyFontScaleToTree(child);
+        }
+    }
+
+    private void OnContentFrameNavigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        // Re-apply font scale when navigating to a new page
+        if (RootGrid.IsLoaded && Math.Abs(_currentFontScale - 1.0) > 0.001)
+        {
+            // Delay slightly to let the new page load into the visual tree
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                dispatcherQueue.TryEnqueue(() =>
+                {
+                    if (RootGrid.IsLoaded)
+                        ApplyFontScaleToTree(RootGrid);
+                });
+            });
+        }
     }
 
     private void ShowWindow()
