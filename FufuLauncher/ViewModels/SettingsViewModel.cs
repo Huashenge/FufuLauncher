@@ -123,6 +123,7 @@ namespace FufuLauncher.ViewModels
         [ObservableProperty] private bool _isAcrylicOverlayEnabled;
         [ObservableProperty] private bool _isPageOverlaySemiTransparentEnabled;
         [ObservableProperty] private double _pageOverlayTargetOpacity = 0.7;
+        [ObservableProperty] private double _fontScale = 1.0;
         [ObservableProperty] private bool _isHamburgerButtonEnabled;
         
         [ObservableProperty] private bool _isHideGameNewsCardEnabled;
@@ -845,6 +846,19 @@ namespace FufuLauncher.ViewModels
             WeakReferenceMessenger.Default.Send(new PageOverlayTargetOpacityChangedMessage(clamped));
         }
 
+        partial void OnFontScaleChanged(double value)
+        {
+            if (_isInitializing) return;
+            var clamped = Math.Clamp(value, 0.5, 1.5);
+            if (Math.Abs(clamped - value) > 0.0001)
+            {
+                FontScale = clamped;
+                return;
+            }
+            _ = _localSettingsService.SaveSettingAsync("FontScale", clamped);
+            WeakReferenceMessenger.Default.Send(new FontScaleChangedMessage(clamped));
+        }
+
         partial void OnIsHamburgerButtonEnabledChanged(bool value)
         {
             if (_isInitializing) return;
@@ -1040,6 +1054,7 @@ namespace FufuLauncher.ViewModels
                 OnPropertyChanged(nameof(IsCpuUsageWarningEnabled));
                 OnPropertyChanged(nameof(CpuUsageWarningThreshold));
                 OnPropertyChanged(nameof(IsRedeemCodeNotificationEnabled));
+                OnPropertyChanged(nameof(FontScale));
                 LoadMonitors();
             }
             finally
@@ -1335,6 +1350,16 @@ var cpuWarningThresholdJson = await _localSettingsService.ReadSettingAsync(Proce
                 AppProcessPriority = AppProcessPriority.Normal;
             }
             ApplyProcessPriority(AppProcessPriority);
+
+            var fontScaleJson = await _localSettingsService.ReadSettingAsync("FontScale");
+            try
+            {
+                FontScale = fontScaleJson != null ? Convert.ToDouble(fontScaleJson) : 1.0;
+            }
+            catch
+            {
+                FontScale = 1.0;
+            }
         }
         
         private void CheckAndLimitDailyNoteItems(string settingName, Action revertAction)

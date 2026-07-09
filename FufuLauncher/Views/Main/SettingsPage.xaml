@@ -494,6 +494,24 @@
                                           OnContent="{helpers:Loc Key=Enabled}"
                                           IsOn="{x:Bind ViewModel.IsMinWindowSizeLimitEnabled, Mode=TwoWay}" />
                         </StackPanel>
+
+                        <StackPanel Style="{StaticResource SettingItemStyle}" Margin="0,12,0,0">
+                            <TextBlock Text="{helpers:Loc Key=FontScaleTitle}"
+                                       Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                       FontSize="14" />
+                            <TextBlock Text="{helpers:Loc Key=FontScaleCaption}"
+                                       Style="{ThemeResource CaptionTextBlockStyle}"
+                                       Opacity="0.7"
+                                       Margin="0,2,0,8" />
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Slider x:Name="FontScaleSlider" Width="260" Minimum="0.5" Maximum="1.5"
+                                        StepFrequency="0.05"
+                                        Value="{x:Bind ViewModel.FontScale, Mode=TwoWay}" />
+                                <TextBlock
+                                    Text="{Binding Value, ElementName=FontScaleSlider, Converter={StaticResource StringFormatConverter}, ConverterParameter='{}{0:P0}'}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
